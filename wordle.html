@@ -82,9 +82,19 @@
         }
 
         @keyframes flipIn {
-            0% { transform: rotateX(0); }
-            50% { transform: rotateX(90deg); }
-            100% { transform: rotateX(0); }
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+
+        .row.shake {
+            animation: shake 0.4s ease;
         }
 
         .keyboard {
@@ -282,7 +292,6 @@
         </div>
 
         <div class="word-info" id="wordInfo"></div>
-        <div id="debugInfo" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; z-index: 9999;"></div>
 
         <div style="margin-top: 16px;">
             <button class="game-btn" id="newWordBtn">New Word</button>
@@ -298,98 +307,224 @@
     </div>
 
     <script>
-        // Word list (common 5-letter words)
+        // Comprehensive 5-letter English word list
         const WORDS = [
-            'about', 'above', 'abuse', 'actor', 'acute', 'admit', 'adopt', 'adult',
-            'after', 'again', 'agent', 'agree', 'ahead', 'alarm', 'album', 'alert',
-            'alien', 'align', 'alive', 'alley', 'allow', 'alone', 'along', 'alter',
-            'among', 'angel', 'anger', 'angle', 'angry', 'apart', 'apple', 'apply',
-            'arena', 'argue', 'arise', 'armor', 'array', 'aside', 'asset', 'avoid',
-            'awake', 'award', 'aware', 'badly', 'baker', 'basic', 'basis', 'beach',
-            'began', 'begin', 'being', 'below', 'bench', 'bible', 'birth', 'black',
-            'blade', 'blame', 'blank', 'blast', 'blaze', 'bleed', 'blend', 'bless',
-            'blind', 'block', 'blood', 'bloom', 'blown', 'board', 'bonus', 'boost',
-            'booth', 'bound', 'brain', 'brand', 'brave', 'bread', 'break', 'breed',
-            'brick', 'bride', 'brief', 'bring', 'broad', 'broke', 'brown', 'brush',
-            'buddy', 'build', 'built', 'bunch', 'burst', 'buyer', 'cabin', 'cable',
-            'carry', 'catch', 'cause', 'chain', 'chair', 'chaos', 'charm', 'chart',
-            'chase', 'cheap', 'check', 'cheek', 'chest', 'chief', 'child', 'china',
-            'chunk', 'civil', 'claim', 'class', 'clean', 'clear', 'climb', 'cling',
-            'clock', 'clone', 'close', 'cloud', 'coach', 'coast', 'color', 'couch',
-            'count', 'court', 'cover', 'crack', 'craft', 'crane', 'crash', 'crazy',
-            'cream', 'creek', 'crime', 'cross', 'crowd', 'crown', 'cruel', 'crush',
-            'curve', 'cycle', 'daily', 'dance', 'death', 'debut', 'delay', 'delta',
-            'dense', 'depth', 'derby', 'devil', 'dirty', 'doubt', 'dough', 'draft',
-            'drain', 'drama', 'drank', 'drawn', 'dream', 'dress', 'dried', 'drift',
-            'drink', 'drive', 'drove', 'drums', 'drunk', 'dryer', 'dying', 'eager',
-            'early', 'earth', 'eight', 'elder', 'elect', 'elite', 'email', 'empty',
-            'enemy', 'enjoy', 'enter', 'entry', 'equal', 'error', 'essay', 'event',
-            'every', 'exact', 'exams', 'exist', 'extra', 'faith', 'false', 'fancy',
-            'fatal', 'fault', 'feast', 'fence', 'fever', 'fiber', 'field', 'fifth',
-            'fifty', 'fight', 'final', 'first', 'fixed', 'flame', 'flash', 'fleet',
-            'flesh', 'float', 'flood', 'floor', 'flour', 'fluid', 'flush', 'focal',
-            'focus', 'force', 'forge', 'forth', 'forum', 'found', 'frame', 'frank',
-            'fraud', 'fresh', 'front', 'frost', 'froze', 'fruit', 'fully', 'funny',
-            'giant', 'given', 'glass', 'globe', 'gloom', 'glory', 'glove', 'going',
-            'grace', 'grade', 'grain', 'grand', 'grant', 'graph', 'grasp', 'grass',
-            'grave', 'great', 'green', 'greet', 'grief', 'grind', 'groan', 'gross',
-            'group', 'grove', 'grown', 'guard', 'guess', 'guest', 'guide', 'guilt',
-            'habit', 'happy', 'harsh', 'haven', 'heart', 'heavy', 'hence',
-            'herbs', 'honor', 'horse', 'hotel', 'house', 'human', 'humor', 'hurry',
-            'ideal', 'image', 'imply', 'index', 'indie', 'inner', 'input', 'issue',
-            'ivory', 'jewel', 'joint', 'joker', 'judge', 'juice', 'juicy', 'jumbo',
-            'karma', 'kayak', 'knife', 'knock', 'known', 'label', 'labor', 'large',
-            'laser', 'later', 'laugh', 'layer', 'learn', 'lease', 'least', 'leave',
-            'legal', 'lemon', 'level', 'light', 'limit', 'linen', 'liver', 'local',
-            'logic', 'loose', 'lover', 'lower', 'lucky', 'lunch', 'lying',
-            'magic', 'major', 'maker', 'march', 'match', 'maybe', 'mayor', 'media',
-            'mercy', 'merit', 'metal', 'meter', 'might', 'minor', 'minus', 'mixed',
-            'model', 'money', 'month', 'moral', 'motor', 'mount', 'mouse', 'mouth',
-            'moved', 'movie', 'music', 'naive', 'nerve', 'never', 'newly', 'night',
-            'noble', 'noise', 'north', 'noted', 'novel', 'nurse', 'nylon', 'occur',
-            'ocean', 'offer', 'often', 'olive', 'opera', 'orbit', 'order', 'organ',
-            'other', 'outer', 'owner', 'oxide', 'paint', 'panel', 'panic', 'paper',
-            'patch', 'pause', 'peace', 'peach', 'pearl', 'penny', 'phase', 'phone',
-            'photo', 'piano', 'piece', 'pilot', 'pinch', 'pitch', 'pixel', 'place',
-            'plain', 'plane', 'plant', 'plate', 'plaza', 'plead', 'pluck', 'point',
-            'polar', 'pound', 'power', 'press', 'price', 'pride', 'prime', 'print',
-            'prior', 'prize', 'probe', 'proof', 'proud', 'prove', 'proxy', 'pulse',
-            'punch', 'pupil', 'queen', 'query', 'quest', 'queue', 'quick', 'quiet',
-            'quota', 'quote', 'radar', 'radio', 'raise', 'rally', 'ranch', 'range',
-            'rapid', 'ratio', 'reach', 'react', 'ready', 'realm', 'rebel', 'refer',
-            'reign', 'relax', 'reply', 'rider', 'ridge', 'rifle', 'right', 'rigid',
-            'rinse', 'risky', 'rival', 'river', 'robin', 'robot', 'rocky', 'rouge',
-            'rough', 'round', 'route', 'royal', 'rugby', 'ruler', 'rural', 'sadly',
-            'saint', 'salad', 'sauce', 'scale', 'scene', 'scope', 'score', 'sense',
-            'serve', 'seven', 'shade', 'shake', 'shall', 'shame', 'shape', 'share',
-            'sharp', 'sheep', 'sheer', 'sheet', 'shelf', 'shell', 'shift', 'shine',
-            'shirt', 'shock', 'shoot', 'shore', 'short', 'shout', 'sight', 'since',
-            'sixth', 'sixty', 'sized', 'skill', 'skull', 'slate', 'sleep', 'slice',
-            'slide', 'slope', 'small', 'smart', 'smell', 'smile', 'smoke',
-            'snake', 'solar', 'solid', 'solve', 'sorry', 'sound', 'south', 'space',
-            'spare', 'spark', 'speak', 'speed', 'spend', 'spent', 'spice', 'spine',
-            'split', 'spoke', 'sport', 'spray', 'squad', 'stack', 'staff', 'stage',
-            'stake', 'stale', 'stall', 'stamp', 'stand', 'stare', 'start', 'state',
-            'steal', 'steam', 'steel', 'steep', 'steer', 'stern', 'stick', 'stiff',
-            'still', 'stock', 'stone', 'stood', 'store', 'storm', 'story', 'stove',
-            'strip', 'stuck', 'study', 'stuff', 'style', 'sugar', 'suite', 'sunny',
-            'super', 'surge', 'swamp', 'swear', 'sweep', 'sweet', 'swept', 'swift',
-            'swing', 'sword', 'swore', 'sworn', 'table', 'taste', 'teach', 'teeth',
-            'thank', 'theme', 'there', 'thick', 'thing', 'think', 'third', 'those',
-            'three', 'threw', 'throw', 'thumb', 'tiger', 'tight', 'timer', 'tired',
-            'title', 'today', 'token', 'total', 'touch', 'tough', 'tower', 'toxic',
-            'trace', 'track', 'trade', 'trail', 'train', 'trait', 'trash', 'treat',
-            'trend', 'trial', 'tribe', 'trick', 'tried', 'troop', 'truck', 'truly',
-            'trump', 'trunk', 'trust', 'truth', 'tumor', 'tuner', 'twice', 'twist',
-            'ultra', 'uncle', 'under', 'unify', 'union', 'unity', 'until', 'upper',
-            'upset', 'urban', 'usage', 'usual', 'utter', 'valid', 'value', 'valve',
-            'vapor', 'vault', 'venue', 'verse', 'video', 'vigor', 'vinyl', 'viral',
-            'virus', 'visit', 'vista', 'vital', 'vivid', 'vocal', 'voice', 'voter',
-            'wagon', 'waste', 'watch', 'water', 'weary', 'weave', 'wedge', 'weigh',
-            'weird', 'whale', 'wheat', 'wheel', 'where', 'which', 'while', 'white',
-            'whole', 'whose', 'wider', 'witch', 'woman', 'world', 'worry', 'worse',
-            'worst', 'worth', 'would', 'wound', 'wrath', 'write', 'wrong', 'wrote',
-            'yacht', 'yield', 'young', 'youth', 'zebra', 'zone'
+            // A
+            'abase','abash','abate','abbey','abbot','abide','abled','abort','about','above',
+            'abuse','abyss','acorn','acrid','adapt','added','adder','adept','adieu','admin',
+            'admit','adobe','adopt','adore','adorn','adult','afoot','after','again','agent',
+            'agile','aging','aglow','agony','agree','ahead','aided','aider','aimed','aimer',
+            'aired','aisle','alarm','album','alert','algae','alias','alibi','alien','align',
+            'alike','alive','allay','alley','allot','allow','alloy','aloft','alone','along',
+            'aloof','aloud','alpha','alter','amass','amaze','amber','amend','amino','amiss',
+            'amity','among','ample','amply','amuse','angel','anger','angle','angry','angst',
+            'anime','ankle','annex','annoy','antic','anvil','aorta','apart','apple','apply',
+            'april','apron','aptly','arena','argue','arise','armor','aroma','arose','array',
+            'arrow','arson','aside','asset','atlas','atone','attic','audio','audit','augur',
+            'aunts','avail','avert','avian','avoid','await','awake','award','aware','awful',
+            'axial','axiom','azure',
+            // B
+            'babel','badge','badly','bagel','baggy','baker','balmy','banal','banjo',
+            'baron','basal','basic','basil','basin','basis','batch','batty','bayou','beach',
+            'beady','beard','beast','beech','beefy','began','begin','beget','being','belch',
+            'belie','belle','belly','below','bench','beret','berry','binge','birch','birth',
+            'black','blade','blame','bland','blank','blare','blast','blaze','bleak','bleat',
+            'bleed','blend','bless','blimp','blind','blink','bliss','blitz','bloat','block',
+            'bloke','blond','blood','bloom','blown','blues','bluff','blunt','blurb','blurt',
+            'blush','board','boast','bobby','bogus','boils','bolts','bonus','booby',
+            'boost','booth','booze','boozy','bored','boron','bosom','bossy','botch','bound',
+            'bowel','boxer','brace','braid','brain','brake','brand','brash','brass','brave',
+            'brawl','bread','break','breed','briar','brick','bride','brief','brine',
+            'bring','brink','briny','brisk','broad','broil','broke','brood','brook','broom',
+            'broth','brown','brush','brunt','buddy','budge','buggy','bugle','build','built',
+            'bulge','bulky','bully','bunch','bunny','burly','burnt','burro','burst','bushy',
+            'busty','buyer','buxom',
+            // C
+            'cabin','cable','camel','cameo','canal','candy','canoe','canon','caper','caput',
+            'carat','cargo','carry','carve','caste','catch','cater','cause','cedar','chain',
+            'chair','chalk','champ','chant','chaos','charm','chart','chase','cheap','cheat',
+            'check','cheek','cheer','chess','chest','chick','chief','child','chili','chill',
+            'chime','china','chirp','choir','chord','chose','chunk','churn','cider','cigar',
+            'cinch','civic','civil','claim','clamp','clang','clank','clash','clasp','class',
+            'clean','clear','clerk','click','cling','clink','cloak','clock','clone','close',
+            'cloth','cloud','clout','clown','clubs','cluck','clued','clump','clung','coach',
+            'coast','cobra','cocoa','coils','color','comet','comic','comma','conch','condo',
+            'coral','couch','cough','could','count','coupe','court','cover','covet','crack',
+            'craft','cramp','crane','crash','crate','crave','crawl','craze','crazy','creak',
+            'cream','creek','creep','crest','crick','crime','crisp','croak','cross','crowd',
+            'crown','crude','cruel','crush','crust','crypt','cubic','curry','curse','curve',
+            'curvy','cycle',
+            // D
+            'daddy','daily','dairy','daisy','dance','dandy','daunt','deals','death','debit',
+            'debug','debut','decal','decay','decor','decoy','decry','defer','deity','delay',
+            'delta','delve','demon','demur','denim','dense','depot','depth','derby','detox',
+            'deuce','devil','diary','digit','dilly','dimly','diner','dingy','dirty','disco',
+            'ditch','ditty','diver','dizzy','dodge','dodgy','dogma','doing','dolly','donor',
+            'donut','doubt','dough','dowdy','downs','dozed','draft','drain','drake','drama',
+            'drank','drape','drawl','drawn','dread','dream','dress','dried','drift','drill',
+            'drink','drive','droit','droll','drone','drool','droop','drops','dross','drove',
+            'drown','drugs','drums','drunk','dryer','dryly','duals','duchy','dummy','dunce',
+            'dusty','dwarf','dwell','dying',
+            // E
+            'eager','eagle','early','earth','easel','eaten','eater','ebony','eclat','edict',
+            'eight','elbow','elder','elect','elfin','elite','elope','elude','email','ember',
+            'emcee','empty','enact','endow','enemy','enjoy','ennui','ensue','enter','entry',
+            'envoy','epoch','equal','equip','erase','erode','error','erupt','essay','ether',
+            'ethic','evade','event','every','evict','evoke','exact','exalt','exams','excel',
+            'exert','exile','exist','expat','expel','extra','exude','exult',
+            // F
+            'fable','facet','faddy','faint','fairy','faith','falls','false','fancy','farce',
+            'fatal','fatty','fault','fauna','feast','feign','feint','fella','felon','femur',
+            'fence','feral','ferry','fetal','fetch','fetid','fetus','fever','fewer','fiber',
+            'fibre','field','fiend','fifth','fifty','fight','filch','filet','filly','filmy',
+            'filth','final','finch','first','fishy','fixed','fixer','fizzy','fjord','flack',
+            'flair','flake','flaky','flame','flank','flare','flash','flask','fleet','flesh',
+            'flick','flier','fling','flint','float','flock','flood','floor','flora','floss',
+            'flour','flout','fluid','fluke','flung','flush','flute','focal','focus','foggy',
+            'folly','force','forge','forgo','forth','forty','forum','found','foyer','frame',
+            'frank','fraud','frays','freak','fresh','friar','fried','frill','frisk','frond',
+            'front','frost','froze','fruit','frump','fully','funky','funny','furor',
+            'furry','fussy','fuzzy',
+            // G
+            'gaily','gains','gamma','gases','gauge','gaunt','gauze','gavel','gawky','gears',
+            'gecko','ghost','giant','giddy','girls','girth','given','giver','gizmo','gland',
+            'glare','glass','glaze','gleam','glean','glide','glint','gloat','gloom','glory',
+            'gloss','glove','glyph','goats','going','golem','golly','goner','goody',
+            'gooey','goose','gorge','gouge','gourd','grace','grade','graft','grail','grain',
+            'grand','grant','grape','graph','grasp','grass','grate','grave','gravy','graze',
+            'great','greed','green','greet','grief','grill','grime','grind','gripe','groan',
+            'groin','groom','grope','gross','group','grout','grove','growl','grown','gruel',
+            'gruff','grump','grunt','guard','guava','guess','guest','guide','guild','guile',
+            'guilt','guise','gulch','gully','gumbo','gummy','guppy','gusto','gusty',
+            // H
+            'habit','hairy','halve','handy','happy','hardy','haste','hasty','hatch','haunt',
+            'haven','hazel','heady','heart','heavy','hedge','hefty','heist','hence','heron',
+            'hilly','hinge','hippo','hired','hitch','hoard','hobby','hoist','homer','honey',
+            'honor','hooch','horse','hotel','hotly','hound','house','hovel','hover','howdy',
+            'hubby','humid','humps','humor','hurry','hyena','hymns','hyped','hyper',
+            // I
+            'icily','icing','ideal','idiom','idiot','idler','idyll','igloo','image','imply',
+            'incur','index','inept','inert','infer','ingot','inner','input','inter','intro',
+            'ionic','irony','issue','ivory',
+            // J
+            'jacks','jaded','japan','jaunt','jazzy','jeans','jelly','jenny','jerky','jewel',
+            'jiffy','jimmy','jinks','joker','jolly','joust','judge','juice','juicy','jumbo',
+            'jumpy','juror',
+            // K
+            'kayak','kebab','khaki','kinky','kiosk','knack','knead','kneel','knelt','knife',
+            'knock','knoll','known','koala',
+            // L
+            'label','labor','laden','ladle','lager','lance','lanky','lapel','lapse','large',
+            'larva','laser','latch','later','lathe','latte','laugh','layer','leach','leafy',
+            'leaky','lease','leash','least','leave','ledge','leery','legal','lemon','lemur',
+            'level','lever','light','lilac','limbo','limit','linen','liner','lingo','lipid',
+            'liter','liver','llama','lodge','lofty','logic','login','loose','lorry','loser',
+            'lousy','lover','lower','lowly','loyal','lucid','lucky','lumen','lumpy','lunar',
+            'lunch','lunge','lurch','lusty','lying',
+            // M
+            'macro','magic','magma','major','maker','mange','manor','maple','march','marry',
+            'marsh','mason','match','matey','mayor','mealy','meant','meaty','medal','media',
+            'medic','mercy','merit','merry','metal','meter','midst','might','mimic','mince',
+            'minor','minus','mirth','miser','misty','mitre','mixed','mixer','moans','model',
+            'modem','mogul','moist','molar','moldy','money','month','moody','moose','moral',
+            'moron','mossy','motel','motif','motor','motto','mould','mound','mourn','mouse',
+            'mousy','mouth','moved','mover','movie','mowed','mucus','muddy','muggy','mulls',
+            'mummy','mural','murky','mushy','music','musty','myths',
+            // N
+            'nacho','nadir','naive','nanny','nasal','nasty','natal','naval','nerve','never',
+            'newly','nexus','niche','night','ninja','noble','nobly','noise','noisy','north',
+            'notch','noted','novel','nudge','nurse','nutty',
+            // O
+            'oasis','occur','ocean','olive','onset','opera','optic','orbit','order','organ',
+            'other','otter','ought','ounce','outer','outdo','ovary','overt','owner','oxide',
+            'ozone',
+            // P
+            'paddy','pagan','paint','paler','palms','panda','panic','pansy','paper','party',
+            'pasta','paste','pasty','patch','patio','pause','paved','payee','peace',
+            'peach','pearl','pecan','pedal','penal','penny','perch','peril','perky','pesky',
+            'petal','petty','phase','phone','photo','piano','picky','piece','piety','piggy',
+            'pilot','pinch','piper','pique','pitch','pithy','pixel','pixie','pizza','place',
+            'plaid','plain','plane','plank','plant','plate','plaza','plead','pleat','plied',
+            'plods','pluck','plumb','plume','plump','plums','plunk','plush','poach','point',
+            'poise','poker','polar','polka','polyp','pooch','poppy','porch','porky','poser',
+            'posse','pouch','pound','pouty','power','prank','prawn','press','price','prick',
+            'pride','pried','prime','primp','print','prior','prism','privy','prize','probe',
+            'prone','prong','proof','prose','proud','prove','prowl','prude','prune','psalm',
+            'pubic','pudgy','pulse','punch','pupil','puppy','purge','purse','pushy','putty',
+            'pygmy',
+            // Q
+            'quack','quaff','quail','qualm','quart','queen','query','quest','queue','quick',
+            'quiet','quill','quilt','quirk','quota','quote',
+            // R
+            'rabbi','radar','radii','radon','rafts','rainy','raise','rally','ranch','range',
+            'rapid','rarer','ratty','raven','reach','react','ready','realm','reams','rebel',
+            'rebus','rebut','recur','refer','reign','relax','relay','relic','remit','renew',
+            'repay','repel','reply','rerun','reset','resin','retch','retro','retry','reuse',
+            'revel','rider','ridge','rifle','right','rigid','rigor','rinse','risky','ritzy',
+            'rival','river','rivet','roach','roast','robin','robot','rocky','rodeo','rogue',
+            'roomy','roots','roses','rouge','rough','round','route','rover','rowdy','royal',
+            'rugby','ruler','rumor','rural','rusty','sadly','saint','salad','salon','salsa',
+            'salty','salve','salvo','sandy','satin','sauce','saucy','sauna','savor',
+            'savvy','scale','scalp','scald','scam','scamp','scant','scare','scarf','scary',
+            'scene','scent','scope','score','scorn','scout','scowl','scram','scrap','scrub',
+            'sedan','sense','serve','seven','sever','shade','shady','shaft','shake','shaky',
+            'shall','shame','shank','shape','share','shark','sharp','shave','shawl','shear',
+            'sheen','sheep','sheer','sheet','shelf','shell','shift','shire','shirt','shock',
+            'shone','shoot','shore','short','shout','shove','shown','shrub','shrug','shuck',
+            'shunt','sided','siege','sight','sigma','silky','silly','since','sixth','sixty',
+            'sized','skate','skier','skill','skimp','skull','skunk','slack','slain','slang',
+            'slant','slash','slate','slave','sleep','sleet','slice','slick','slide','slime',
+            'slimy','sling','slope','sloth','small','smart','smash','smell','smelt','smile',
+            'smirk','smite','smith','smoke','smoky','snack','snafu','snail','snake','snaky',
+            'snare','snarl','sneak','sneer','snide','sniff','snoop','snore','snort','snout',
+            'soapy','sober','solar','solid','solve','sonic','sorry','sound','south','space',
+            'spade','spare','spark','spasm','spawn','speak','spear','speck','speed','spell',
+            'spend','spent','spice','spicy','spike','spill','spine','spite','split',
+            'spoil','spoke','spoon','sport','spout','spray','spree','sprig','squad','squat',
+            'squid','stack','staff','stage','staid','stain','stair','stake','stale','stalk',
+            'stall','stamp','stand','stank','stare','stark','start','state','stave','steak',
+            'steal','steam','steel','steep','steer','stern','stick','stiff','still','sting',
+            'stink','stint','stock','stoic','stoke','stole','stomp','stone','stood','stool',
+            'stoop','store','stork','storm','story','stout','stove','strap','straw','stray',
+            'strip','strut','stuck','study','stuff','stump','stung','stunk','stunt','style',
+            'suave','sugar','suite','sulky','sunny','super','surge','sushi','swamp','swarm',
+            'swear','sweat','sweep','sweet','swell','swept','swift','swill','swine','swing',
+            'swipe','swirl','sword','swore','sworn','swung','syrup','tests','words','games',
+            // T
+            'tabby','table','tacit','tacky','taste','tasty','taunt','tempo','tenet','tenor',
+            'tense','tenth','tepee','tepid','terms','thank','theft','their','theme','there',
+            'these','thick','thief','thigh','thing','think','third','thorn','those','three',
+            'threw','throw','thrum','thumb','thump','tiara','tidal','tiger','tight','timer',
+            'timid','tipsy','titan','title','toast','today','token','tonal','tonic','tooth',
+            'topaz','topic','torch','total','totem','touch','tough','towel','tower','toxic',
+            'trace','track','trade','trail','train','trait','tramp','trash','trawl','treat',
+            'trend','triad','trial','tribe','trice','trick','tried','tripe','trite','troll',
+            'troop','troth','trout','truce','truck','truly','trump','trunk','truss','trust',
+            'truth','tuber','tulip','tummy','tumor','tuner','tunic','turbo','tutor','twang',
+            'tweak','tweed','tweet','twice','twill','twine','twirl','twist','tying','typed',
+            // U
+            'ulcer','ultra','umbra','uncle','uncut','under','undid','undue','unfed','unfit',
+            'unify','union','unite','unity','unlit','unmet','unset','untie','until','unwed',
+            'upper','upset','urban','usher','using','usual','utter',
+            // V
+            'vague','valid','valor','value','valve','vapor','vault','veers','vegan','venue',
+            'verge','verse','vigor','vinyl','viola','viper','viral','virus','visit','visor',
+            'vista','vital','vivid','vixen','vocal','vodka','vogue','voice','voter','vouch',
+            'vowel','vulva',
+            // W
+            'wacky','waded','wager','wages','wagon','waist','watch','water','waved','waver',
+            'waxen','weary','weave','wedge','weedy','weigh','weird','welch','wench','whack',
+            'whale','wharf','wheat','wheel','where','which','while','whiff','whine','whiny',
+            'whirl','whisk','white','whole','whose','widen','wider','widow','width','wield',
+            'willy','wimpy','wince','winch','windy','witch','witty','woken','woman','women',
+            'woody','wordy','world','worms','worry','worse','worst','worth','would','wound',
+            'wrack','wrath','wreak','wreck','wrest','wring','write','wrong','wrote','wryly',
+            // X
+            'xenon',
+            // Y
+            'yacht','yearn','yeast','yield','young','youth','yummy',
+            // Z
+            'zebra','zesty','zippy','zonal','zooms'
         ];
 
         const WORD_LENGTH = 5;
@@ -432,11 +567,6 @@
 
         function updateCoinsDisplay() {
             document.getElementById('coinsDisplay').textContent = getCoins();
-        }
-
-        function updateDebug(msg) {
-            const el = document.getElementById('debugInfo');
-            if (el) el.textContent = msg;
         }
 
         function updateHintButtons() {
@@ -484,8 +614,6 @@
         }
 
         function initGame() {
-            updateDebug('initGame called, isAnimating=' + isAnimating);
-            if (isAnimating) { updateDebug('BLOCKED by animation lock'); return; }
             // Increment generation to invalidate ALL stale callbacks
             generation++;
             // Cancel all pending timeouts from previous game
@@ -540,6 +668,14 @@
             });
         }
 
+        function shakeRow(rowIndex) {
+            const row = document.getElementById(`row-${rowIndex}`);
+            if (row) {
+                row.classList.add('shake');
+                setTimeout(() => row.classList.remove('shake'), 400);
+            }
+        }
+
         function handleKey(key) {
             if (gameOver || isAnimating) return;
 
@@ -558,17 +694,15 @@
             if (key === 'ENTER') {
                 if (currentCol < WORD_LENGTH) {
                     messageEl.textContent = 'Not enough letters';
-                    updateDebug('ENTER: not enough letters');
                     return;
                 }
                 const guess = grid[currentRow].join('');
                 if (!WORDS.includes(guess)) {
                     messageEl.textContent = 'Not in word list';
-                    updateDebug('ENTER: word not in list: ' + guess);
+                    shakeRow(currentRow);
                     return;
                 }
                 messageEl.textContent = '';
-                updateDebug('ENTER: calling evaluateGuess with ' + guess);
                 evaluateGuess(guess);
                 return;
             }
@@ -611,7 +745,6 @@
             const revealRow = currentRow;
             const thisGen = generation; // Capture current generation
             isAnimating = true; // Lock input during animation
-            updateDebug('evaluateGuess: isAnimating=true, gen=' + generation);
             for (let i = 0; i < WORD_LENGTH; i++) {
                 const tile = document.getElementById(`tile-${revealRow}-${i}`);
                 const t1 = setTimeout(() => {
@@ -643,9 +776,8 @@
 
             // Check win/lose after animation completes
             const finalTimeout = setTimeout(() => {
-                if (thisGen !== generation) { updateDebug('finalTimeout: gen mismatch, aborted'); return; }
+                if (thisGen !== generation) return;
                 isAnimating = false; // Unlock input
-                updateDebug('finalTimeout: isAnimating=false');
                 if (guess === targetWord) {
                     gameOver = true;
                     wins++;
