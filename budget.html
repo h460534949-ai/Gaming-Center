@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Budget Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f4f8;
+            color: #1a2e1a;
+            min-height: 100vh;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2d8f4e, #1a6b35);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+
+        header p {
+            font-size: 14px;
+            opacity: 0.85;
+        }
+
+        .dashboard {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 16px;
+        }
+
+        .balance-bar {
+            background: white;
+            border-radius: 16px;
+            padding: 20px 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .balance-amount {
+            font-size: 36px;
+            font-weight: 800;
+            color: #2d8f4e;
+        }
+
+        .balance-amount.negative {
+            color: #d9534f;
+        }
+
+        .balance-label {
+            font-size: 13px;
+            color: #6b7c6b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .balance-summary {
+            display: flex;
+            gap: 20px;
+        }
+
+        .summary-item {
+            text-align: center;
+        }
+
+        .summary-item .amount {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .summary-item .label {
+            font-size: 11px;
+            color: #6b7c6b;
+            text-transform: uppercase;
+        }
+
+        .income-amount { color: #2d8f4e; }
+        .expense-amount { color: #d9534f; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 600px) {
+            .grid { grid-template-columns: 1fr; }
+            .balance-bar { flex-direction: column; text-align: center; }
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-icon {
+            font-size: 20px;
+        }
+
+        .add-btn {
+            background: #2d8f4e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-btn:hover {
+            background: #1a6b35;
+        }
+
+        .list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f4f0;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .item-detail {
+            font-size: 12px;
+            color: #6b7c6b;
+            margin-top: 2px;
+        }
+
+        .item-amount {
+            font-weight: 700;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+
+        .item-amount.income { color: #2d8f4e; }
+        .item-amount.expense { color: #d9534f; }
+
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            margin-left: 8px;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .delete-btn:hover {
+            color: #d9534f;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .savings-section {
+            margin-bottom: 16px;
+        }
+
+        .savings-card {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+
+        .progress-bar-bg {
+            background: #e8f5e9;
+            border-radius: 10px;
+            height: 24px;
+            overflow: hidden;
+            margin: 12px 0;
+            position: relative;
+        }
+
+        .progress-bar-fill {
+            background: linear-gradient(90deg, #2d8f4e, #4caf50);
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.4s ease;
+            min-width: 0;
+        }
+
+        .progress-text {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a4a1a;
+        }
+
+        .savings-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            color: #6b7c6b;
+        }
+
+        .savings-info .current {
+            font-weight: 700;
+            color: #2d8f4e;
+        }
+
+        .set-goal-btn {
+            background: none;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 8px 16px;
+            color: #999;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .set-goal-btn:hover {
+            border-color: #2d8f4e;
+            color: #2d8f4e;
+        }
+
+        .due-soon {
+            color: #e67e22;
+            font-weight: 600;
+        }
+
+        .overdue {
+            color: #d9534f;
+            font-weight: 600;
+        }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal h2 {
+            font-size: 20px;
+            margin-bottom: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 4px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus, .form-group select:focus {
+            border-color: #2d8f4e;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+        .btn-primary {
+            flex: 1;
+            background: #2d8f4e;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-primary:hover { background: #1a6b35; }
+
+        .btn-cancel {
+            flex: 1;
+            background: #f0f0f0;
+            color: #555;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn-cancel:hover { background: #e0e0e0; }
+
+        .transactions-card {
+            margin-bottom: 16px;
+        }
+
+        .transaction-type-toggle {
+            display: flex;
+            gap: 0;
+            margin-bottom: 14px;
+            background: #f0f4f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            color: #6b7c6b;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: #2d8f4e;
+            color: white;
+        }
+
+        .quick-add {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .quick-add input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .quick-add input:focus {
+            border-color: #2d8f4e;
+        }
+
+        .quick-add-btn {
+            background: #2d8f4e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .quick-add-btn:hover {
+            background: #1a6b35;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Budget Tracker</h1>
+    <p>Track your money simply</p>
+</header>
+
+<div class="dashboard">
+    <div class="balance-bar">
+        <div>
+            <div class="balance-label">Your Balance</div>
+            <div class="balance-amount" id="balanceAmount">$0.00</div>
+        </div>
+        <div class="balance-summary">
+            <div class="summary-item">
+                <div class="amount income-amount" id="totalIncome">$0.00</div>
+                <div class="label">Money In</div>
+            </div>
+            <div class="summary-item">
+                <div class="amount expense-amount" id="totalExpenses">$0.00</div>
+                <div class="label">Money Out</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-add">
+        <input type="text" id="quickDesc" placeholder="What did you spend or earn?">
+        <input type="number" id="quickAmount" placeholder="$0" style="width: 80px;">
+        <select id="quickType" style="width: 80px; padding: 10px 4px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 13px;">
+            <option value="expense">Spent</option>
+            <option value="income">Earned</option>
+        </select>
+        <button class="quick-add-btn" onclick="quickAdd()">Add</button>
+    </div>
+
+    <div class="savings-section">
+        <div class="savings-card">
+            <div class="card-header">
+                <div class="card-title"><span class="card-icon">🎯</span> Savings Goal</div>
+                <button class="set-goal-btn" id="setGoalBtn" onclick="openGoalModal()">Set a Goal</button>
+            </div>
+            <div id="savingsContent" style="display:none;">
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="progressFill" style="width: 0%"></div>
+                    <span class="progress-text" id="progressPercent">0%</span>
+                </div>
+                <div class="savings-info">
+                    <span>Saved: <span class="current" id="savedAmount">$0.00</span></span>
+                    <span>Goal: <span id="goalAmount">$0.00</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><span class="card-icon">📅</span> Upcoming Costs</div>
+                <button class="add-btn" onclick="openUpcomingModal()">+ Add</button>
+            </div>
+            <div id="upcomingList">
+                <div class="empty-state">No upcoming costs</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title"><span class="card-icon">🤝</span> Money Owed</div>
+                <button class="add-btn" onclick="openDebtModal()">+ Add</button>
+            </div>
+            <div id="debtList">
+                <div class="empty-state">No money owed</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card transactions-card">
+        <div class="card-header">
+            <div class="card-title"><span class="card-icon">📋</span> Recent Activity</div>
+        </div>
+        <div class="transaction-type-toggle">
+            <button class="toggle-btn active" onclick="filterTransactions('all', this)">All</button>
+            <button class="toggle-btn" onclick="filterTransactions('income', this)">Earned</button>
+            <button class="toggle-btn" onclick="filterTransactions('expense', this)">Spent</button>
+        </div>
+        <div id="transactionList">
+            <div class="empty-state">No transactions yet — add one above!</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="goalModal">
+    <div class="modal">
+        <h2>Set Savings Goal</h2>
+        <div class="form-group">
+            <label>What are you saving for?</label>
+            <input type="text" id="goalName" placeholder="e.g. New headphones">
+        </div>
+        <div class="form-group">
+            <label>How much do you need?</label>
+            <input type="number" id="goalTarget" placeholder="100">
+        </div>
+        <div class="form-group">
+            <label>How much have you saved so far?</label>
+            <input type="number" id="goalSaved" placeholder="0" value="0">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('goalModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveGoal()">Save Goal</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="upcomingModal">
+    <div class="modal">
+        <h2>Add Upcoming Cost</h2>
+        <div class="form-group">
+            <label>What is it for?</label>
+            <input type="text" id="upcomingName" placeholder="e.g. Spotify subscription">
+        </div>
+        <div class="form-group">
+            <label>How much?</label>
+            <input type="number" id="upcomingAmount" placeholder="9.99">
+        </div>
+        <div class="form-group">
+            <label>When is it due?</label>
+            <input type="date" id="upcomingDate">
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('upcomingModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveUpcoming()">Add</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="debtModal">
+    <div class="modal">
+        <h2>Add Money Owed</h2>
+        <div class="form-group">
+            <label>Who is it owed to?</label>
+            <input type="text" id="debtName" placeholder="e.g. Mom, Jake">
+        </div>
+        <div class="form-group">
+            <label>How much?</label>
+            <input type="number" id="debtAmount" placeholder="15">
+        </div>
+        <div class="form-group">
+            <label>When is it due?</label>
+            <input type="date" id="debtDate">
+        </div>
+        <div class="form-group">
+            <label>Is this money someone owes you, or you owe them?</label>
+            <select id="debtType">
+                <option value="owe">I owe someone</option>
+                <option value="owed">Someone owes me</option>
+            </select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('debtModal')">Cancel</button>
+            <button class="btn-primary" onclick="saveDebt()">Add</button>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>Budget Tracker &mdash; Made for students</p>
+</footer>
+
+<script>
+    let data = {
+        transactions: [],
+        upcoming: [],
+        debts: [],
+        savingsGoal: null
+    };
+
+    let currentFilter = 'all';
+
+    function loadData() {
+        const saved = localStorage.getItem('budget_tracker_data');
+        if (saved) {
+            data = JSON.parse(saved);
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem('budget_tracker_data', JSON.stringify(data));
+    }
+
+    function formatMoney(amount) {
+        return '$' + parseFloat(amount).toFixed(2);
+    }
+
+    function updateDashboard() {
+        let totalIn = 0;
+        let totalOut = 0;
+
+        data.transactions.forEach(t => {
+            if (t.type === 'income') totalIn += t.amount;
+            else totalOut += t.amount;
+        });
+
+        const balance = totalIn - totalOut;
+        const balanceEl = document.getElementById('balanceAmount');
+        balanceEl.textContent = formatMoney(balance);
+        balanceEl.className = 'balance-amount' + (balance < 0 ? ' negative' : '');
+
+        document.getElementById('totalIncome').textContent = formatMoney(totalIn);
+        document.getElementById('totalExpenses').textContent = formatMoney(totalOut);
+
+        renderTransactions();
+        renderUpcoming();
+        renderDebts();
+        renderSavings();
+    }
+
+    function renderTransactions() {
+        const container = document.getElementById('transactionList');
+        let filtered = data.transactions;
+
+        if (currentFilter !== 'all') {
+            filtered = filtered.filter(t => t.type === currentFilter);
+        }
+
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state">No transactions yet — add one above!</div>';
+            return;
+        }
+
+        const sorted = [...filtered].reverse();
+        container.innerHTML = sorted.map((t, i) => {
+            const realIndex = data.transactions.indexOf(t);
+            return `<div class="list-item">
+                <div class="item-info">
+                    <div class="item-name">${escapeHtml(t.description)}</div>
+                    <div class="item-detail">${t.date}</div>
+                </div>
+                <span class="item-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${formatMoney(t.amount)}</span>
+                <button class="delete-btn" onclick="deleteTransaction(${realIndex})" title="Delete">&times;</button>
+            </div>`;
+        }).join('');
+    }
+
+    function renderUpcoming() {
+        const container = document.getElementById('upcomingList');
+
+        if (data.upcoming.length === 0) {
+            container.innerHTML = '<div class="empty-state">No upcoming costs</div>';
+            return;
+        }
+
+        const sorted = [...data.upcoming].sort((a, b) => new Date(a.date) - new Date(b.date));
+        container.innerHTML = sorted.map(item => {
+            const realIndex = data.upcoming.indexOf(item);
+            const dueClass = getDueClass(item.date);
+            return `<div class="list-item">
+                <div class="item-info">
+                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    <div class="item-detail ${dueClass}">${formatDateLabel(item.date)}</div>
+                </div>
+                <span class="item-amount expense">${formatMoney(item.amount)}</span>
+                <button class="delete-btn" onclick="deleteUpcoming(${realIndex})" title="Delete">&times;</button>
+            </div>`;
+        }).join('');
+    }
+
+    function renderDebts() {
+        const container = document.getElementById('debtList');
+
+        if (data.debts.length === 0) {
+            container.innerHTML = '<div class="empty-state">No money owed</div>';
+            return;
+        }
+
+        const sorted = [...data.debts].sort((a, b) => new Date(a.date) - new Date(b.date));
+        container.innerHTML = sorted.map(item => {
+            const realIndex = data.debts.indexOf(item);
+            const dueClass = getDueClass(item.date);
+            const prefix = item.type === 'owe' ? 'You owe' : 'Owed by';
+            return `<div class="list-item">
+                <div class="item-info">
+                    <div class="item-name">${prefix} ${escapeHtml(item.name)}</div>
+                    <div class="item-detail ${dueClass}">${formatDateLabel(item.date)}</div>
+                </div>
+                <span class="item-amount" style="color: ${item.type === 'owe' ? '#d9534f' : '#2d8f4e'}">${item.type === 'owe' ? '-' : '+'}${formatMoney(item.amount)}</span>
+                <button class="delete-btn" onclick="deleteDebt(${realIndex})" title="Delete">&times;</button>
+            </div>`;
+        }).join('');
+    }
+
+    function renderSavings() {
+        const goalContent = document.getElementById('savingsContent');
+        const setGoalBtn = document.getElementById('setGoalBtn');
+
+        if (!data.savingsGoal) {
+            goalContent.style.display = 'none';
+            setGoalBtn.style.display = '';
+            return;
+        }
+
+        goalContent.style.display = '';
+        setGoalBtn.style.display = 'none';
+
+        const goal = data.savingsGoal;
+        const percent = Math.min(100, Math.round((goal.saved / goal.target) * 100));
+
+        document.getElementById('progressFill').style.width = percent + '%';
+        document.getElementById('progressPercent').textContent = percent + '%';
+        document.getElementById('savedAmount').textContent = formatMoney(goal.saved);
+        document.getElementById('goalAmount').textContent = goal.name + ' — ' + formatMoney(goal.target);
+    }
+
+    function getDueClass(dateStr) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(dateStr);
+        const diff = (due - today) / (1000 * 60 * 60 * 24);
+        if (diff < 0) return 'overdue';
+        if (diff <= 3) return 'due-soon';
+        return '';
+    }
+
+    function formatDateLabel(dateStr) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = new Date(dateStr);
+        const diff = Math.round((due - today) / (1000 * 60 * 60 * 24));
+
+        if (diff === 0) return 'Due today';
+        if (diff === 1) return 'Due tomorrow';
+        if (diff === -1) return 'Overdue by 1 day';
+        if (diff < -1) return 'Overdue by ' + Math.abs(diff) + ' days';
+        if (diff <= 7) return 'Due in ' + diff + ' days';
+
+        return due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function quickAdd() {
+        const desc = document.getElementById('quickDesc').value.trim();
+        const amount = parseFloat(document.getElementById('quickAmount').value);
+        const type = document.getElementById('quickType').value;
+
+        if (!desc || isNaN(amount) || amount <= 0) return;
+
+        data.transactions.push({
+            description: desc,
+            amount: amount,
+            type: type,
+            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        });
+
+        document.getElementById('quickDesc').value = '';
+        document.getElementById('quickAmount').value = '';
+
+        saveData();
+        updateDashboard();
+    }
+
+    function deleteTransaction(index) {
+        data.transactions.splice(index, 1);
+        saveData();
+        updateDashboard();
+    }
+
+    function deleteUpcoming(index) {
+        data.upcoming.splice(index, 1);
+        saveData();
+        updateDashboard();
+    }
+
+    function deleteDebt(index) {
+        data.debts.splice(index, 1);
+        saveData();
+        updateDashboard();
+    }
+
+    function filterTransactions(filter, btn) {
+        currentFilter = filter;
+        document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTransactions();
+    }
+
+    function openGoalModal() {
+        if (data.savingsGoal) {
+            document.getElementById('goalName').value = data.savingsGoal.name;
+            document.getElementById('goalTarget').value = data.savingsGoal.target;
+            document.getElementById('goalSaved').value = data.savingsGoal.saved;
+        }
+        document.getElementById('goalModal').classList.add('active');
+    }
+
+    function openUpcomingModal() {
+        document.getElementById('upcomingName').value = '';
+        document.getElementById('upcomingAmount').value = '';
+        document.getElementById('upcomingDate').value = '';
+        document.getElementById('upcomingModal').classList.add('active');
+    }
+
+    function openDebtModal() {
+        document.getElementById('debtName').value = '';
+        document.getElementById('debtAmount').value = '';
+        document.getElementById('debtDate').value = '';
+        document.getElementById('debtType').value = 'owe';
+        document.getElementById('debtModal').classList.add('active');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('active');
+    }
+
+    function saveGoal() {
+        const name = document.getElementById('goalName').value.trim();
+        const target = parseFloat(document.getElementById('goalTarget').value);
+        const saved = parseFloat(document.getElementById('goalSaved').value) || 0;
+
+        if (!name || isNaN(target) || target <= 0) return;
+
+        data.savingsGoal = { name, target, saved };
+        saveData();
+        updateDashboard();
+        closeModal('goalModal');
+    }
+
+    function saveUpcoming() {
+        const name = document.getElementById('upcomingName').value.trim();
+        const amount = parseFloat(document.getElementById('upcomingAmount').value);
+        const date = document.getElementById('upcomingDate').value;
+
+        if (!name || isNaN(amount) || amount <= 0 || !date) return;
+
+        data.upcoming.push({ name, amount, date });
+        saveData();
+        updateDashboard();
+        closeModal('upcomingModal');
+    }
+
+    function saveDebt() {
+        const name = document.getElementById('debtName').value.trim();
+        const amount = parseFloat(document.getElementById('debtAmount').value);
+        const date = document.getElementById('debtDate').value;
+        const type = document.getElementById('debtType').value;
+
+        if (!name || isNaN(amount) || amount <= 0 || !date) return;
+
+        data.debts.push({ name, amount, date, type });
+        saveData();
+        updateDashboard();
+        closeModal('debtModal');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) overlay.classList.remove('active');
+        });
+    });
+
+    document.getElementById('quickDesc').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') quickAdd();
+    });
+    document.getElementById('quickAmount').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') quickAdd();
+    });
+
+    loadData();
+    updateDashboard();
+</script>
+
+</body>
+</html>

@@ -282,10 +282,10 @@
         </div>
 
         <div class="word-info" id="wordInfo"></div>
+        <div id="debugInfo" style="position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; z-index: 9999;"></div>
 
-        <div style="margin-top: 16px; display: flex; gap: 12px;">
+        <div style="margin-top: 16px;">
             <button class="game-btn" id="newWordBtn">New Word</button>
-            <button class="game-btn secondary" id="clearHistoryBtn">Clear History</button>
         </div>
     </div>
 
@@ -405,7 +405,7 @@
         let streak = parseInt(localStorage.getItem('wordleStreak') || '0');
         let pendingTimeouts = []; // Track all pending timeouts for cleanup
         let generation = 0; // Generation counter to invalidate stale callbacks
-        let allGuesses = []; // Store all previous guesses to preserve them
+        let isAnimating = false; // Lock input during guess reveal animation
 
         // Currency & Inventory system
         const COINS_KEY = 'gamezone_coins';
@@ -432,6 +432,11 @@
 
         function updateCoinsDisplay() {
             document.getElementById('coinsDisplay').textContent = getCoins();
+        }
+
+        function updateDebug(msg) {
+            const el = document.getElementById('debugInfo');
+            if (el) el.textContent = msg;
         }
 
         function updateHintButtons() {
@@ -479,20 +484,14 @@
         }
 
         function initGame() {
-            // Save completed guesses before resetting
-            if (currentRow > 0 && !gameOver) {
-                // Save any partially filled row as well
-                const partialGuess = grid[currentRow].join('');
-                if (partialGuess.length > 0) {
-                    allGuesses.push({ guess: partialGuess, row: currentRow, partial: true });
-                }
-            }
-
+            updateDebug('initGame called, isAnimating=' + isAnimating);
+            if (isAnimating) { updateDebug('BLOCKED by animation lock'); return; }
             // Increment generation to invalidate ALL stale callbacks
             generation++;
             // Cancel all pending timeouts from previous game
             pendingTimeouts.forEach(id => clearTimeout(id));
             pendingTimeouts = [];
+            isAnimating = false;
             targetWord = pickWord();
             currentRow = 0;
             currentCol = 0;
@@ -522,38 +521,6 @@
                 }
                 boardEl.appendChild(row);
             }
-
-            // Restore previous guesses
-            allGuesses.forEach(guessInfo => {
-                if (guessInfo.row < MAX_GUESSES) {
-                    const guess = guessInfo.guess;
-                    for (let c = 0; c < guess.length && c < WORD_LENGTH; c++) {
-                        const tile = document.getElementById(`tile-${guessInfo.row}-${c}`);
-                        if (tile) {
-                            tile.textContent = guess[c];
-                            tile.classList.add('filled');
-                            if (guessInfo.partial) {
-                                tile.style.opacity = '0.5';
-                            } else if (guessInfo.result) {
-                                // Restore the color coding
-                                tile.classList.add(guessInfo.result[c]);
-                                // Update keyboard state
-                                const letter = guess[c];
-                                const state = guessInfo.result[c];
-                                const prev = keyStates[letter];
-                                if (state === 'correct') {
-                                    keyStates[letter] = 'correct';
-                                } else if (state === 'present' && prev !== 'correct') {
-                                    keyStates[letter] = 'present';
-                                } else if (!prev) {
-                                    keyStates[letter] = 'absent';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            updateKeyboard();
         }
 
         function buildKeyboard() {
@@ -574,7 +541,7 @@
         }
 
         function handleKey(key) {
-            if (gameOver) return;
+            if (gameOver || isAnimating) return;
 
             if (key === 'BACK' || key === 'Backspace') {
                 if (currentCol > 0) {
@@ -591,14 +558,17 @@
             if (key === 'ENTER') {
                 if (currentCol < WORD_LENGTH) {
                     messageEl.textContent = 'Not enough letters';
+                    updateDebug('ENTER: not enough letters');
                     return;
                 }
                 const guess = grid[currentRow].join('');
                 if (!WORDS.includes(guess)) {
                     messageEl.textContent = 'Not in word list';
+                    updateDebug('ENTER: word not in list: ' + guess);
                     return;
                 }
                 messageEl.textContent = '';
+                updateDebug('ENTER: calling evaluateGuess with ' + guess);
                 evaluateGuess(guess);
                 return;
             }
@@ -640,6 +610,8 @@
             // Animate reveal
             const revealRow = currentRow;
             const thisGen = generation; // Capture current generation
+            isAnimating = true; // Lock input during animation
+            updateDebug('evaluateGuess: isAnimating=true, gen=' + generation);
             for (let i = 0; i < WORD_LENGTH; i++) {
                 const tile = document.getElementById(`tile-${revealRow}-${i}`);
                 const t1 = setTimeout(() => {
@@ -671,7 +643,9 @@
 
             // Check win/lose after animation completes
             const finalTimeout = setTimeout(() => {
-                if (thisGen !== generation) return; // Abort if game was reset
+                if (thisGen !== generation) { updateDebug('finalTimeout: gen mismatch, aborted'); return; }
+                isAnimating = false; // Unlock input
+                updateDebug('finalTimeout: isAnimating=false');
                 if (guess === targetWord) {
                     gameOver = true;
                     wins++;
@@ -686,8 +660,6 @@
                     resultOverlay.classList.add('active');
                     wordInfoEl.textContent = `The word was: "${targetWord.toUpperCase()}"`;
                     updateHintButtons();
-                    // Save completed guess
-                    allGuesses.push({ guess: guess, row: revealRow, partial: false, result: result });
                 } else if (revealRow >= MAX_GUESSES - 1) {
                     gameOver = true;
                     streak = 0;
@@ -695,15 +667,11 @@
                     streakEl.textContent = streak;
                     addCoins(LOSE_COINS);
                     resultTitle.textContent = 'Game Over';
-                    resultMsg.innerHTML = `The word was: "${targetWord.toUpperCase()}"<div class="coins-earned">+${LOSE_COINS} </div>`;
+                    resultMsg.innerHTML = `The word was: "${targetWord.toUpperCase()}"<div class="coins-earned">+${LOSE_COINS} 🪙</div>`;
                     resultOverlay.classList.add('active');
                     wordInfoEl.textContent = `Better luck next time!`;
                     updateHintButtons();
-                    // Save completed guess
-                    allGuesses.push({ guess: guess, row: revealRow, partial: false, result: result });
                 } else {
-                    // Save completed guess
-                    allGuesses.push({ guess: guess, row: revealRow, partial: false, result: result });
                     currentRow++;
                     currentCol = 0;
                 }
@@ -828,10 +796,6 @@
         // Buttons
         playAgainBtn.addEventListener('click', initGame);
         newWordBtn.addEventListener('click', initGame);
-        clearHistoryBtn.addEventListener('click', () => {
-            allGuesses = [];
-            initGame();
-        });
 
         // Start
         initGame();
