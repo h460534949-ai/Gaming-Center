@@ -676,7 +676,14 @@
             }
         }
 
+        let lastKeyTime = 0;
+
         function handleKey(key) {
+            // Prevent duplicate key processing (click + keydown events)
+            const now = Date.now();
+            if (now - lastKeyTime < 50) return;
+            lastKeyTime = now;
+
             if (gameOver || isAnimating) return;
 
             if (key === 'BACK' || key === 'Backspace') {
